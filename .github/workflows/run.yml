@@ -51,7 +51,7 @@ jobs:
             echo "TY_ACCOUNTS=$TY_ACCOUNTS"
             echo "TY_FAMILIES=$TY_FAMILIES"
             echo "SENDKEY=$SENDKEY"
-          } > .env
+          } >> $GITHUB_ENV
 
       - name: 📡 Init dependencies
         run: npm install
