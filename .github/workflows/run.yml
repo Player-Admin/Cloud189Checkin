@@ -3,14 +3,14 @@ on:
   push:
     branches:
       - main
-  watch:
-    types: started
   workflow_dispatch:
   schedule:
     # UTC 02:35 / 14:35，对应北京时间 10:35 / 22:35
-    # 两个时间点互为备用，避免单次定时事件被 GitHub 丢弃后整天不执行
+    # 两个时间点互为备用，避免单次定时事件被丢弃后整天不执行
     - cron: 35 2 * * *
     - cron: 35 14 * * *
+permissions:
+  contents: write
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
@@ -42,12 +42,16 @@ jobs:
           restore-keys: cloud189-token-
 
       - name: 🔧 Init secrets
-        uses: shine1594/secrets-to-env-action@master
-        with:
-          secrets: ${{ toJSON(secrets) }}
-          secrets_env: production
-          prefix_prod: ""
-          file_name_prod: .env
+        env:
+          TY_ACCOUNTS: ${{ secrets.TY_ACCOUNTS }}
+          TY_FAMILIES: ${{ secrets.TY_FAMILIES }}
+          SENDKEY: ${{ secrets.SENDKEY }}
+        run: |
+          {
+            echo "TY_ACCOUNTS=$TY_ACCOUNTS"
+            echo "TY_FAMILIES=$TY_FAMILIES"
+            echo "SENDKEY=$SENDKEY"
+          } > .env
 
       - name: 📡 Init dependencies
         run: npm install
@@ -71,15 +75,6 @@ jobs:
         run: |
           git config --local user.email "${{ github.actor_id }}+${{ github.actor }}@users.noreply.github.com"
           git config --local user.name "${{ github.actor }}"
-          git remote set-url origin https://${{ github.actor }}:${{ github.token }}@github.com/${{ github.repository }}
           git pull --rebase --autostash
           git commit --allow-empty -m "Keep Running..."
           git push
-
-      - name: 🎉 Delete old workflow run
-        uses: Mattraks/delete-workflow-runs@main
-        with:
-          token: ${{ github.token }}
-          repository: ${{ github.repository }}
-          retain_days: 0
-          keep_minimum_runs: 50
